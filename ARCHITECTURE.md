@@ -20,35 +20,34 @@ The system follows a **clean separation of concerns**:
 
 ```mermaid
 flowchart LR
-    subgraph External Providers
+    subgraph ext [External Providers]
         BLS[Bureau of Labor Statistics API]
         Census[US Census API]
     end
 
-    subgraph Ingestion
+    subgraph ing [Ingestion]
         Jobs[Background Ingestion Jobs]
     end
 
-    subgraph Storage
+    subgraph stor [Storage]
         PG[(PostgreSQL)]
         Redis[(Redis Cache)]
     end
 
-    subgraph API
-        API[Core Data API Service]
+    subgraph api_sg [API]
+        ApiService[Core Data API Service]
     end
 
-    subgraph Frontend
+    subgraph front [Frontend]
         UI[React Dashboard]
     end
 
     BLS --> Jobs
     Census --> Jobs
     Jobs --> PG
-    PG --> API
-    API --> Redis
-    Redis --> API
-    API --> UI
+    PG --> ApiService
+    ApiService <--> Redis
+    ApiService --> UI
 ```
 
 ## 3. Backend Architecture
