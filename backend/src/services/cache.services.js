@@ -6,7 +6,7 @@ module.exports = {
       const data = await redis.get(key);
       return data ? JSON.parse(data) : null;
     } catch (err) {
-      return null;
+      return null; // Fail silently if Redis is down
     }
   },
 
@@ -14,11 +14,13 @@ module.exports = {
     try {
       await redis.setex(key, ttlSeconds, JSON.stringify(value));
     } catch (err) {
-      // Fail silently — cache is best-effort
+      // Cache is optional — fail silently
     }
   },
 
   async del(key) {
-    try { await redis.del(key); } catch (_) {}
+    try {
+      await redis.del(key);
+    } catch (_) {}
   },
 };
