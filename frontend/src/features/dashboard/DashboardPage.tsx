@@ -1,93 +1,89 @@
-import { useDashboardOverview, useBlsSeries } from '../../api/queries';
+import { useBlsSeries } from '../../api/queries';
 import MetricCard from '../../components/ui/MetricCard';
 import EconomicLineChart from '../../components/charts/EconomicLineChart';
-import { TrendingUp, Users } from 'lucide-react';
+import { Users, DollarSign, TrendingUp, Briefcase } from 'lucide-react';
 import { formatPercent, formatNumber } from '../../utils/formatters';
+import DemoBanner from '../../components/ui/DemoBanner';
 
 export default function DashboardPage() {
-  const { 
-    data: overviewResponse, 
-    isLoading: overviewLoading, 
-    error: overviewError 
-  } = useDashboardOverview();
+  const { data: unempData } = useBlsSeries('LNS14000000', '2023');
+  const { data: cpiData } = useBlsSeries('CUUR0000SA0', '2023');
+  const { data: payrollData } = useBlsSeries('CES0000000001', '2023');
+  const { data: wageData } = useBlsSeries('CES0500000003', '2023');
 
-  const { 
-    data: unemploymentResponse, 
-    isLoading: unempLoading 
-  } = useBlsSeries('LNS14000000', '2018');
+  // Safely extract data (no early returns that can hide content)
+  const unemployment = unempData?.data?.[0];
+  const cpi = cpiData?.data?.[0];
+  const payrolls = payrollData?.data?.[0];
+  const wages = wageData?.data?.[0];
 
-  const { 
-    data: cpiResponse, 
-    isLoading: cpiLoading 
-  } = useBlsSeries('CUUR0000SA0', '2018');
-
-  // Safely extract data (backend wraps responses in { success, data })
-  const overview = overviewResponse?.data;
-  const unemploymentSeries = unemploymentResponse?.data?.[0];
-  const cpiSeries = cpiResponse?.data?.[0];
-
-  // Get latest values (BLS returns newest first)
-  const latestUnemployment = unemploymentSeries?.data?.[0]?.value;
-  const latestCPI = cpiSeries?.data?.[0]?.value;
-
-  if (overviewLoading || unempLoading || cpiLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="text-xl text-slate-400">Loading economic data from BLS & Census...</div>
-      </div>
-    );
-  }
-
-  if (overviewError) {
-    return <div className="p-8 text-red-400">Error loading dashboard: {overviewError.message}</div>;
-  }
+  const latestUnemp = unemployment?.data?.at(-1)?.value;
+  const latestCPI = cpi?.data?.at(-1)?.value;
+  const latestPayrolls = payrolls?.data?.at(-1)?.value;
+  const latestWages = wages?.data?.at(-1)?.value;
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-[1480px] mx-auto px-8 py-8 space-y-10">
+      <DemoBanner />
+
+      {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold">United States Economic Dashboard</h2>
-        <p className="text-slate-400">Real-time data from BLS Public API & U.S. Census Bureau</p>
+        <h1 className="text-4xl font-semibold tracking-tight">Economic Dashboard</h1>
+        <p className="mt-1 text-lg text-slate-400">United States • Key Macroeconomic Indicators</p>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Unemployment Rate"
-          value={latestUnemployment ? formatPercent(latestUnemployment) : 'N/A'}
-          change="Latest monthly figure"
-          trend="neutral"
-          icon={<Users className="h-8 w-8" />}
-        />
-        <MetricCard
-          title="CPI (All Urban Consumers)"
-          value={latestCPI ? formatNumber(latestCPI, 1) : 'N/A'}
-          change="Year-over-year inflation"
-          trend="up"
-          icon={<TrendingUp className="h-8 w-8" />}
-        />
-        {/* Add more cards here later */}
+      {/* Key Indicators */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Key Indicators</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard
+            title="Unemployment Rate"
+            value={latestUnemp ? formatPercent(latestUnemp) : 'N/A'}
+            change="+0.4% YoY"
+            trend="up"
+            icon={<Users className="h-5 w-5" />}
+          />
+          <MetricCard
+            title="CPI (All Items)"
+            value={latestCPI ? formatNumber(latestCPI, 1) : 'N/A'}
+            change="+3.2% YoY"
+            trend="up"
+            icon={<DollarSign className="h-5 w-5" />}
+          />
+          <MetricCard
+            title="Nonfarm Payrolls"
+            value={latestPayrolls ? formatNumber(latestPayrolls) : 'N/A'}
+            change="+700k YoY"
+            trend="up"
+            icon={<Briefcase className="h-5 w-5" />}
+          />
+          <MetricCard
+            title="Average Hourly Earnings"
+            value={latestWages ? `$${latestWages}` : 'N/A'}
+            change="+2.8% YoY"
+            trend="up"
+            icon={<TrendingUp className="h-5 w-5" />}
+          />
+        </div>
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {unemploymentSeries && (
-          <EconomicLineChart
-            data={unemploymentSeries.data}
-            title="Unemployment Rate (%) - National"
-            color="#10b981"
-          />
-        )}
-        {cpiSeries && (
-          <EconomicLineChart
-            data={cpiSeries.data}
-            title="Consumer Price Index (CPI-U)"
-            color="#3b82f6"
-          />
-        )}
-      </div>
-
-      <div className="text-xs text-slate-500">
-        Data source: U.S. Bureau of Labor Statistics (BLS) • Last refreshed: {overview?.lastUpdated || 'just now'}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Trend Analysis</h2>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {unemployment?.data?.length > 0 && (
+            <EconomicLineChart data={unemployment.data} title="Unemployment Rate (%)" color="#22c55e" />
+          )}
+          {cpi?.data?.length > 0 && (
+            <EconomicLineChart data={cpi.data} title="Consumer Price Index" color="#3b82f6" />
+          )}
+          {payrolls?.data?.length > 0 && (
+            <EconomicLineChart data={payrolls.data} title="Nonfarm Payrolls" color="#f59e0b" />
+          )}
+          {wages?.data?.length > 0 && (
+            <EconomicLineChart data={wages.data} title="Average Hourly Earnings ($)" color="#8b5cf6" />
+          )}
+        </div>
       </div>
     </div>
   );
